@@ -20,7 +20,8 @@ jobs:
 
       - name: Build and push Docker image
         run: |
-          docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/spring-deploy-student7-app:latest .
+          # Melakukan build fresh tanpa cache agar perubahan properties terbawa
+          docker build --no-cache -t ${{ secrets.DOCKERHUB_USERNAME }}/spring-deploy-student7-app:latest .
           docker push ${{ secrets.DOCKERHUB_USERNAME }}/spring-deploy-student7-app:latest
 
       - name: Deploy to VPS via SSH
@@ -31,8 +32,12 @@ jobs:
           key: ${{ secrets.VPS_SSH_KEY }}
           port: 22
           script: |
+            # Masuk ke folder aplikasi, buat jika belum ada
             mkdir -p /home/student/spring-app/student7
             cd /home/student/spring-app/student7
+            
+            # Membuat file docker-compose.yml secara otomatis
+            # Menggunakan port 9007 untuk luar dan dalam agar sinkron dengan Cara B kamu
             echo "services:
               app:
                 image: ${{ secrets.DOCKERHUB_USERNAME }}/spring-deploy-student7-app:latest
@@ -40,5 +45,8 @@ jobs:
                 ports:
                   - '9007:9007'
                 restart: always" > docker-compose.yml
+            
+            # Matikan container lama, tarik image terbaru, dan jalankan ulang
+            docker compose down
             docker compose pull
             docker compose up -d

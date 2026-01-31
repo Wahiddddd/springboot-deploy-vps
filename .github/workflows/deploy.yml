@@ -20,8 +20,7 @@ jobs:
 
       - name: Build and push Docker image
         run: |
-          # Build fresh tanpa cache agar perubahan properties (port 9007) terbawa
-          docker build --no-cache -t ${{ secrets.DOCKERHUB_USERNAME }}/spring-deploy-student7-app:latest .
+          docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/spring-deploy-student7-app:latest .
           docker push ${{ secrets.DOCKERHUB_USERNAME }}/spring-deploy-student7-app:latest
 
       - name: Deploy to VPS via SSH
@@ -32,26 +31,31 @@ jobs:
           key: ${{ secrets.VPS_SSH_KEY }}
           port: 22
           script: |
-            # 1. Masuk folder dan pastikan bersih
             mkdir -p /home/student/spring-app/student7
             cd /home/student/spring-app/student7
             
-            # 2. Hentikan container lama agar port 9007 lepas (tidak bentrok)
-            docker compose down --remove-orphans || true
-            
-            # 3. Tulis ulang config docker-compose
+            # Buat file .env agar docker-compose mentor bisa baca portnya
+            echo "APP_PORT=9007" > .env
+            echo "DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}" >> .env
+
+            # Buat file docker-compose.yml persis seperti instruksi mentor
+            # Saya sesuaikan nama container & image agar unik (student7)
             echo "services:
-              app:
+              spring-deploy-student7-app:
                 image: ${{ secrets.DOCKERHUB_USERNAME }}/spring-deploy-student7-app:latest
-                container_name: spring-student7-container
+                container_name: spring-deploy-student7-app
                 ports:
                   - '9007:9007'
-                restart: always" > docker-compose.yml
+                env_file:
+                  - .env
+                restart: always
+                networks:
+                  - classroom_classroom_net
+
+            networks:
+              classroom_classroom_net:
+                external: true" > docker-compose.yml
             
-            # 4. Tarik image terbaru dan nyalakan
+            docker compose down || true
             docker compose pull
             docker compose up -d
-            
-            # 5. Diagnosa otomatis: Cek apakah container beneran jalan
-            sleep 10
-            docker ps | grep spring-student7-container

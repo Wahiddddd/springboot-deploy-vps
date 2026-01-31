@@ -20,7 +20,7 @@ jobs:
 
       - name: Build and push Docker image
         run: |
-          # Melakukan build fresh tanpa cache agar perubahan properties terbawa
+          # Build fresh tanpa cache agar perubahan properties (port 9007) terbawa
           docker build --no-cache -t ${{ secrets.DOCKERHUB_USERNAME }}/spring-deploy-student7-app:latest .
           docker push ${{ secrets.DOCKERHUB_USERNAME }}/spring-deploy-student7-app:latest
 
@@ -32,12 +32,14 @@ jobs:
           key: ${{ secrets.VPS_SSH_KEY }}
           port: 22
           script: |
-            # Masuk ke folder aplikasi, buat jika belum ada
+            # 1. Masuk folder dan pastikan bersih
             mkdir -p /home/student/spring-app/student7
             cd /home/student/spring-app/student7
             
-            # Membuat file docker-compose.yml secara otomatis
-            # Menggunakan port 9007 untuk luar dan dalam agar sinkron dengan Cara B kamu
+            # 2. Hentikan container lama agar port 9007 lepas (tidak bentrok)
+            docker compose down --remove-orphans || true
+            
+            # 3. Tulis ulang config docker-compose
             echo "services:
               app:
                 image: ${{ secrets.DOCKERHUB_USERNAME }}/spring-deploy-student7-app:latest
@@ -46,7 +48,10 @@ jobs:
                   - '9007:9007'
                 restart: always" > docker-compose.yml
             
-            # Matikan container lama, tarik image terbaru, dan jalankan ulang
-            docker compose down
+            # 4. Tarik image terbaru dan nyalakan
             docker compose pull
             docker compose up -d
+            
+            # 5. Diagnosa otomatis: Cek apakah container beneran jalan
+            sleep 10
+            docker ps | grep spring-student7-container

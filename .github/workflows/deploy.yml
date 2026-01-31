@@ -29,7 +29,16 @@ jobs:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
+          port: 22
           script: |
+            mkdir -p /home/student/spring-app/student7
             cd /home/student/spring-app/student7
+            echo "services:
+              app:
+                image: ${{ secrets.DOCKERHUB_USERNAME }}/spring-deploy-student7-app:latest
+                container_name: spring-student7-container
+                ports:
+                  - '9007:9007'
+                restart: always" > docker-compose.yml
             docker compose pull
             docker compose up -d

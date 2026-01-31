@@ -1,0 +1,13 @@
+version: '3.8'
+services:
+  app:
+    image: wahiddddd/spring-deploy-student7-app:latest
+    container_name: student7-app
+    ports:
+      - "9007:9007"
+    networks:
+      - classroom_classroom_net
+
+networks:
+  classroom_classroom_net:
+    external: true

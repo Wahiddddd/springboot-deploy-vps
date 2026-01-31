@@ -1,0 +1,33 @@
+GET http://203.194.115.210:9000/hello?name=arif HTTP/1.1
+
+###
+
+GET http://203.194.115.210:9000/products HTTP/1.1
+
+###
+
+GET http://203.194.115.210:9000/products/3 HTTP/1.1
+
+###
+
+POST http://203.194.115.210:9000/products HTTP/1.1
+content-type: application/json
+
+{
+    "name": "Sample Product",
+    "price": "100"
+}
+
+###
+
+PUT http://203.194.115.210:9000/products/4 HTTP/1.1
+content-type: application/json
+
+{
+    "name": "Sample Product",
+    "price": "125"
+}
+
+###
+
+DELETE http://203.194.115.210:9000/products/4 HTTP/1.1

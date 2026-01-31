@@ -20,7 +20,8 @@ jobs:
 
       - name: Build and push Docker image
         run: |
-          docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/spring-deploy-student7-app:latest .
+          # Build ulang tanpa cache agar settingan port di main/resources terbawa
+          docker build --no-cache -t ${{ secrets.DOCKERHUB_USERNAME }}/spring-deploy-student7-app:latest .
           docker push ${{ secrets.DOCKERHUB_USERNAME }}/spring-deploy-student7-app:latest
 
       - name: Deploy to VPS via SSH
@@ -34,18 +35,23 @@ jobs:
             mkdir -p /home/student/spring-app/student7
             cd /home/student/spring-app/student7
             
-            # Buat file .env agar docker-compose mentor bisa baca portnya
-            echo "APP_PORT=9007" > .env
+            # 1. Hapus container lama secara paksa agar port 9077 terlepas
+            docker rm -f spring-deploy-student7-app || true
+            
+            # 2. Buat network jika belum ada (antisipasi error mentor)
+            docker network create classroom_classroom_net || true
+            
+            # 3. Buat file .env
+            echo "APP_PORT=9077" > .env
             echo "DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}" >> .env
 
-            # Buat file docker-compose.yml persis seperti instruksi mentor
-            # Saya sesuaikan nama container & image agar unik (student7)
+            # 4. Tulis file docker-compose.yml
             echo "services:
               spring-deploy-student7-app:
                 image: ${{ secrets.DOCKERHUB_USERNAME }}/spring-deploy-student7-app:latest
                 container_name: spring-deploy-student7-app
                 ports:
-                  - '9007:9007'
+                  - '9077:9077'
                 env_file:
                   - .env
                 restart: always
@@ -56,6 +62,10 @@ jobs:
               classroom_classroom_net:
                 external: true" > docker-compose.yml
             
-            docker compose down || true
+            # 5. Eksekusi
             docker compose pull
             docker compose up -d
+            
+            # 6. Intip log 5 detik pertama untuk pastikan tidak crash
+            sleep 5
+            docker logs --tail 20 spring-deploy-student7-app

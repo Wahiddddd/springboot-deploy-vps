@@ -32,40 +32,21 @@ jobs:
           key: ${{ secrets.VPS_SSH_KEY }}
           port: 22
           script: |
-            mkdir -p /home/student/spring-app/student7
             cd /home/student/spring-app/student7
             
-            # 1. Hapus container lama secara paksa agar port 9077 terlepas
-            docker rm -f spring-deploy-student7-app || true
+            # Hapus yang lama sampai bersih
+            docker compose down --remove-orphans || true
             
-            # 2. Buat network jika belum ada (antisipasi error mentor)
-            docker network create classroom_classroom_net || true
-            
-            # 3. Buat file .env
-            echo "APP_PORT=9077" > .env
-            echo "DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}" >> .env
-
-            # 4. Tulis file docker-compose.yml
-            echo "services:
-              spring-deploy-student7-app:
-                image: ${{ secrets.DOCKERHUB_USERNAME }}/spring-deploy-student7-app:latest
-                container_name: spring-deploy-student7-app
-                ports:
-                  - '9077:9077'
-                env_file:
-                  - .env
-                restart: always
-                networks:
-                  - classroom_classroom_net
-
-            networks:
-              classroom_classroom_net:
-                external: true" > docker-compose.yml
-            
-            # 5. Eksekusi
+            # Jalankan yang baru
             docker compose pull
             docker compose up -d
             
-            # 6. Intip log 5 detik pertama untuk pastikan tidak crash
-            sleep 5
-            docker logs --tail 20 spring-deploy-student7-app
+            # --- BAGIAN MATA-MATA (DIAGNOSA) ---
+            echo "=== MENUNGGU APLIKASI BOOTING (15 DETIK) ==="
+            sleep 15
+            
+            echo "=== STATUS CONTAINER ==="
+            docker ps -a | grep student7
+            
+            echo "=== LOG TERAKHIR APLIKASI (CEK ERROR DI SINI) ==="
+            docker logs --tail 50 spring-deploy-student7-app
